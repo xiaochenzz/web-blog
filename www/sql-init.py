@@ -7,11 +7,6 @@
 # @Software: PyCharm
 
 
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-__author__ = 'Seiei'
-
 import mysql.connector
 
 conn = mysql.connector.connect(user='root', password='', database='awesome')#连接MySQL数据库中的awesome数据库
