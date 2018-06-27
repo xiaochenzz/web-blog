@@ -19,8 +19,9 @@ from datetime import datetime
 from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 
-import www.orm
-from www.coroweb import add_static, add_routes
+import orm
+from coroweb import add_static, add_routes
+from handlers import cookie2user, COOKIE_NAME
 
 
 '''
@@ -70,6 +71,22 @@ async def logger_factory(app, handler):
 		logging.info('Request: %s %s' % (request.method, request.path))
 		return (await handler(request))
 	return logger
+
+
+async def auth_factory(app, handler):
+	async def auth(request):
+		logging.info('check user: %s %s' % (request.method, request.path))
+		request.__user__ = None
+		cookie_str = request.cookies.get(COOKIE_NAME)
+		if cookie_str:
+			user = await cookie2user(cookie_str)
+			if user:
+				logging.info('set current user: %s' % user.email)
+				request.__user__ = user
+		if request.path.startswith('/manage/') and (request.__user__ is None or not request.__user__.admin):
+			return web.HTTPFound('/signin')
+		return (await handler(request))
+	return auth
 
 
 async def data_factory(app, handler):
@@ -152,7 +169,7 @@ def datetime_filter(t):
 	return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
 async def init(loop):
-	await www.orm.create_pool(loop=loop, host='127.0.0.1', port=3306, user='root', password='', db='awesome')
+	await orm.create_pool(loop=loop, host='127.0.0.1', port=3306, user='root', password='', db='awesome')
 	app = web.Application(loop=loop, middlewares=[logger_factory, response_factory])
 	init_jinja2(app, filters=dict(datetime=datetime_filter))
 	add_routes(app, 'handlers')

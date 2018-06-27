@@ -49,7 +49,7 @@ def merge(defaults, override):
 def toDict(d):
 	# 把配置文件转换为Dict类实例
 	D = Dict()
-	for k, v in d.items()
+	for k, v in d.items():
 		D[k] = toDict(v) if isinstance(v, dict) else v
 	return D
 

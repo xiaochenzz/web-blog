@@ -40,7 +40,7 @@ async def select(sql, args, size=None):
 		async with conn.cursor(aiomysql.DictCursor) as cur:
 			await cur.execute(sql.replace('?', '%s'), args or ())
 			if size:
-				rs = await cur.fetchmany()
+				rs = await cur.fetchmany(size)
 			else:
 				rs = await cur.fetchall()
 		logging.info('rows returned: %s' % len(rs))
@@ -111,8 +111,8 @@ class IntegerField(Field):
 
 class FloatField(Field):
 
-    def __init__(self, name=None, primary_key=False, default=0.0):
-        super().__init__(name, 'real', primary_key, default)
+	def __init__(self, name=None, primary_key=False, default=0.0):
+		super().__init__(name, 'real', primary_key, default)
 
 
 class TextField(Field):
@@ -212,7 +212,7 @@ class Model(dict, metaclass=ModelMetaclass):
 				args.extend(limit)
 			else:
 				raise ValueError('Invalid limit value: %s' %  str(limit))
-		rs = await select(' '.join(sql), args)
+		rs = await select(' '.join(sql), args, 1)
 		return [cls(**r) for r in rs]
 
 	@classmethod

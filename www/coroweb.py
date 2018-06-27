@@ -15,7 +15,7 @@ import functools
 
 from urllib import parse
 from aiohttp import web
-from www.apis import APIError
+from apis import APIError
 
 '''
 Http定义了与服务器交互的不同方法，最基本的方法有4种，分别是GET，POST，PUT，DELETE。URL全称是资源描述符，
