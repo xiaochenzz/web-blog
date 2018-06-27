@@ -19,6 +19,8 @@ from datetime import datetime
 from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 
+from config import configs
+
 import orm
 from coroweb import add_static, add_routes
 from handlers import cookie2user, COOKIE_NAME
@@ -138,6 +140,7 @@ async def response_factory(app, handler):
 			else:  # 带模板信息，渲染模板
 				# app['__templating__']获取已初始化的Environment对象，调用get_template()方法返回Template对象
 				# 调用Template对象的render()方法，传入r渲染模板，返回unicode格式字符串，将其用utf-8编码
+				r['__user__'] = request.__user__
 				resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
 				resp.content_type = 'text/html;charset=utf-8'   # utf-8编码的html格式
 				return resp
@@ -169,8 +172,8 @@ def datetime_filter(t):
 	return u'%s年%s月%s日' % (dt.year, dt.month, dt.day)
 
 async def init(loop):
-	await orm.create_pool(loop=loop, host='127.0.0.1', port=3306, user='root', password='', db='awesome')
-	app = web.Application(loop=loop, middlewares=[logger_factory, response_factory])
+	await orm.create_pool(loop=loop, **configs.db)
+	app = web.Application(loop=loop, middlewares=[logger_factory, auth_factory, response_factory])
 	init_jinja2(app, filters=dict(datetime=datetime_filter))
 	add_routes(app, 'handlers')
 	add_static(app)

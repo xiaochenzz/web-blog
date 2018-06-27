@@ -108,7 +108,8 @@ def index(request):
     ]
     return {
         '__template__': 'blogs.html',
-        'blogs': blogs
+        'blogs': blogs,
+        '__user__' : request.__user__
     }
 
 
@@ -212,7 +213,7 @@ async def get_blog(id):
     comments = await Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
     for c in comments:
         c.html_content = text2html(c.content)
-    blog.html_content = markdown2.markdown(blog.content)
+    #blog.html_content = markdown2.markdown(blog.content)
     return {
         '__template__' : 'blog.html',
         'blog' : blog,
