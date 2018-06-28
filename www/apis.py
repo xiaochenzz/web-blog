@@ -65,6 +65,7 @@ class Page(object):
 
 
 class APIError(Exception):
+	
 	'''
 	the base APIError which contains error(required),data(optional) and message
 	(optional)
@@ -101,3 +102,7 @@ class APIPermissionError(APIError):
 	'''
 	def __init__(self, message=''):
 		super(APIPermissionError, self).__init__('permission:forbidden', 'permission', message)
+		
+if __name__=='__main__':
+	import doctest
+	doctest.testmod()
