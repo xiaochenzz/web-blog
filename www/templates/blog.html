@@ -5,7 +5,9 @@
 {% block beforehead %}
 
 <script>
+
 var comment_url = '/api/blogs/{{ blog.id }}/comments';
+
 $(function () {
     var $form = $('#form-comment');
     $form.submit(function (e) {
