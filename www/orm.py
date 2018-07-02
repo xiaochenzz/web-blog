@@ -20,47 +20,48 @@ def log(sql, args=()):
 async def create_pool(loop, **kw):
 	logging.info('create database connection pool...')
 	# 该函数用于创建连接池
-	global __pool
+	global __pool  # 全局变量用于保存连接池
 	__pool = await aiomysql.create_pool(
-		host=kw.get('host', 'localhost'),
-		port=kw.get('port', 3306),
-		user=kw['user'],
-		password=kw['password'],
-		db=kw['db'],
-		charset=kw.get('charset', 'utf8'),
-		autocommit=kw.get('autocommit', True),
-		maxsize=kw.get('maxsize', 10),
-		minsize=kw.get('minsize', 1),
-		loop=loop
+		host=kw.get('host', 'localhost'),  # 默认定义host名字为localhost
+		port=kw.get('port', 3306),   # 默认定义mysql的默认端口为3306
+		user=kw['user'],   # user是通过关键字参数传进来的
+		password=kw['password'],  # 密码也是通过关键字参数传进来的
+		db=kw['db'],  # 数据库名称
+		charset=kw.get('charset', 'utf8'),   # 默认数据库字符集是utf-8
+		autocommit=kw.get('autocommit', True),  # 默认自动提交事务
+		maxsize=kw.get('maxsize', 10),  # 连接池最多同时处理10个请求
+		minsize=kw.get('minsize', 1),  # 李娜劫持最少1个请求
+		loop=loop   # 传递信息循环对象loop用于异步执行
 	)
 
 
-# =============================SQL处理函数区==========================
+# =============================SQL处理函数区======================================
 # select和execute方法是实现其他Model类中SQL语句都经常要用的方法，原本是全局函数，这里作为静态函数处理
 
 async def select(sql, args, size=None):
+	# select语句则对应select方法，传入sql语句和参数
 	log(sql, args)
 	global __pool
-	async with __pool.get() as conn:
-		async with conn.cursor(aiomysql.DictCursor) as cur:
-			await cur.execute(sql.replace('?', '%s'), args or ())
-			if size:
-				rs = await cur.fetchmany(size)
-			else:
-				rs = await cur.fetchall()
-		logging.info('rows returned: %s' % len(rs))
-		return rs
+	async with __pool.get() as conn:   # 异步等待连接池对象返回可以连接线程，with语句则封装了清理（关闭conn）及处理异常的工作
+		async with conn.cursor(aiomysql.DictCursor) as cur:   #等待连接对象返回DictCursor，可以通过dict的方式获取数据库对象，需要通过游标对象执行SQL
+			await cur.execute(sql.replace('?', '%s'), args or ())  # 所有args都通过replace方法把占位符替换成%，args是execute方法的参数
+			if size:   # 如果指定要返回几行
+				rs = await cur.fetchmany(size)  # 从数据库获取指定的行数
+			else:  # 如果没指定返回几行，即size=None
+				rs = await cur.fetchall()  # 都要异步执行
+		logging.info('rows returned: %s' % len(rs))  # 输出LOG信息
+		return rs   # 返回结果集
 
 
-async def execute(sql, args, autocommit=True):
+async def execute(sql, args, autocommit=True):  # execute方法志返回结果数，不返回结果集，用于insert，update这些sql语句
 	log(sql)
 	async with __pool.get() as conn:
 		if not autocommit:
 			await conn.begin()
 		try:
 			async with conn.cursor(aiomysql.DictCursor) as cur:
-				await cur.execute(sql.replace('?', '%s'), args)
-				affected = cur.rowcount
+				await cur.execute(sql.replace('?', '%s'), args)  # 执行sql语句，同时替换占位符
+				affected = cur.rowcount   # 返回受影响的行数
 			if not autocommit:
 				await conn.commit()
 		except BaseException as e:
@@ -70,6 +71,8 @@ async def execute(sql, args, autocommit=True):
 		return affected
 
 
+# ===============================Model基类以及元类================================
+# 对象和关系之间要映射起来，首先考虑创建所有Model类的一个父类，具体的Model对象（就是数据库表在你代码中对应的对象）再继承这个基类
 def create_args_string(num):
 	L = []
 	for n in range(num):
